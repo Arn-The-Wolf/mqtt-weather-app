@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Station Dashboard</title>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px;
+            background-color: #e6f3ff;
+        }
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+        .readings-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+        }
+        .reading-card {
+            background: #ffffff;
+            padding: 20px 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 2px solid #1e90ff;
+        }
+        .graph-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border: 2px solid #1e90ff;
+        }
+        .current-reading {
+            font-size: 48px;
+            font-weight: bold;
+            color: #1e90ff;
+            margin: 10px 0;
+        }
+        .reading-label {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .unit {
+            font-size: 24px;
+            color: #1e90ff;
+        }
+        h2 {
+            color: #1e90ff;
+            text-align: center;
+            margin: 10px 0;
+        }
+        #graph {
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="readings-container">
+            <div class="reading-card">
+                <div class="reading-label">Temperature</div>
+                <div class="current-reading">
+                    <span id="temp">--</span>
+                    <span class="unit">°C</span>
+                </div>
+            </div>
+            <div class="reading-card">
+                <div class="reading-label">Humidity</div>
+                <div class="current-reading">
+                    <span id="humidity">--</span>
+                    <span class="unit">%</span>
+                </div>
+            </div>
+        </div>
+        <div class="graph-card">
+            <h2>Historical Data</h2>
+            <div id="graph"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let tempData = [];
+        let humData = [];
+        let timeData = [];
+
+        // Handle real-time updates
+        socket.on('new_reading', (data) => {
+            if (data.topic.endsWith('temperature')) {
+                document.getElementById('temp').innerText = data.value.toFixed(1);
+            } else if (data.topic.endsWith('humidity')) {
+                document.getElementById('humidity').innerText = data.value.toFixed(1);
+            }
+            updateGraph();
+        });
+
+        // Fetch historical data and create initial graph
+        async function initializeGraph() {
+            const response = await fetch('/get_historical_data');
+            const data = await response.json();
+            
+            data.reverse().forEach(reading => {
+                timeData.push(new Date(reading[0]));
+                tempData.push(reading[1]);
+                humData.push(reading[2]);
+            });
+            
+            updateGraph();
+        }
+
+        function updateGraph() {
+            const traces = [
+                {
+                    x: timeData,
+                    y: tempData,
+                    name: 'Temperature',
+                    type: 'scatter',
+                    line: {
+                        color: '#1e90ff',
+                        width: 3
+                    }
+                },
+                {
+                    x: timeData,
+                    y: humData,
+                    name: 'Humidity',
+                    type: 'scatter',
+                    line: {
+                        color: '#4169e1',
+                        width: 3
+                    },
+                    yaxis: 'y2'
+                }
+            ];
+
+            const layout = {
+                title: {
+                    text: 'Temperature and Humidity Over Time',
+                    font: { color: '#1e90ff' }
+                },
+                paper_bgcolor: 'white',
+                plot_bgcolor: '#f8fbff',
+                xaxis: {
+                    title: 'Time',
+                    gridcolor: '#e6e6e6'
+                },
+                yaxis: {
+                    title: 'Temperature (°C)',
+                    gridcolor: '#e6e6e6',
+                    titlefont: { color: '#1e90ff' },
+                    tickfont: { color: '#1e90ff' }
+                },
+                yaxis2: {
+                    title: 'Humidity (%)',
+                    overlaying: 'y',
+                    side: 'right',
+                    gridcolor: '#e6e6e6',
+                    titlefont: { color: '#4169e1' },
+                    tickfont: { color: '#4169e1' }
+                }
+            };
+
+            Plotly.newPlot('graph', traces, layout);
+        }
+
+        initializeGraph();
+    </script>
+</body>
+</html> 
