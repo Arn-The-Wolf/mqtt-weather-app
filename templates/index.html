@@ -107,17 +107,24 @@
 
         // Fetch historical data and create initial graph
         async function initializeGraph() {
-            const response = await fetch('/get_historical_data');
-            const data = await response.json();
-            
-            data.reverse().forEach(reading => {
-                timeData.push(new Date(reading[0]));
-                tempData.push(reading[1]);
-                humData.push(reading[2]);
-            });
-            
-            updateGraph();
-        }
+    const response = await fetch('/get_historical_data');
+    const data = await response.json();
+    console.log('Received historical data:', data);
+    
+    data.reverse().forEach(reading => {
+        timeData.push(new Date(reading.timestamp));
+        tempData.push(reading.temperature);
+        humData.push(reading.humidity);
+    });
+    
+    console.log('Processed data:', {
+        timeData,
+        tempData,
+        humData
+    });
+    
+    updateGraph();
+}
 
         function updateGraph() {
             const traces = [

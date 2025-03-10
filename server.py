@@ -41,7 +41,18 @@ def create_app(config_name):
         data = c.fetchall()
         conn.close()
         
-        return jsonify(data)
+        # Mark the most recent data as current
+        formatted_data = []
+        for i, record in enumerate(data):
+            is_current = (i == 0)  # First record is the most recent
+            formatted_data.append({
+                'timestamp': record[0],
+                'temperature': record[1],
+                'humidity': record[2],
+                'is_current': is_current
+            })
+        
+        return jsonify(formatted_data)
     
     @app.route('/export_data')
     def export_data():
